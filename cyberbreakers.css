@@ -157,3 +157,23 @@ a:hover {
     transform: translateY(0);
   }
 }
+
+.win {
+  color: lime;
+  animation: pop 1s ease;
+}
+
+.fail {
+  color: red;
+  animation: flash 0.5s infinite;
+}
+
+@keyframes pop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+@keyframes flash {
+  0% { background: red; }
+  100% { background: black; }
+}
