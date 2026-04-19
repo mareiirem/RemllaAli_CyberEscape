@@ -1,26 +1,51 @@
 <?php
 session_start();
 
+// reset game if coming fresh
+if (isset($_GET['new'])) {
+    session_unset();
+    session_destroy();
+
+    // delete old cookie
+    setcookie("progress", "", time() - 3600);
+
+    session_start();
+}
+
+// time limits
 $times = [
     "easy" => 600,
     "normal" => 420,
     "expert" => 240
 ];
 
-// difficulty
+// set difficulty
 if (!isset($_SESSION['difficulty'])) {
     $_SESSION['difficulty'] = $_GET['difficulty'] ?? "easy";
 }
 
-// restore cookie progress (basic)
-if (!isset($_SESSION['start_time']) && isset($_COOKIE['progress'])) {
+// restore progress from cookie (SKIP if new game)
+if (!isset($_SESSION['start_time']) && isset($_COOKIE['progress']) && !isset($_GET['new'])) {
     $saved = unserialize($_COOKIE['progress']);
-    if ($saved) {
-        $_SESSION = array_merge($_SESSION, $saved);
+    if (is_array($saved)) {
+        foreach ($saved as $key => $value) {
+            if (!isset($_SESSION[$key])) {
+                $_SESSION[$key] = $value;
+            }
+        }
     }
 }
 
-// START GAME
+// cipher function
+function caesarCipher($text, $shift) {
+    $result = '';
+    foreach (str_split($text) as $char) {
+        $result .= chr(((ord($char) - 97 + $shift) % 26) + 97);
+    }
+    return $result;
+}
+
+// start game
 if (!isset($_SESSION['start_time'])) {
     $_SESSION['start_time'] = time();
     $_SESSION['hints_used'] = 0;
@@ -30,28 +55,38 @@ if (!isset($_SESSION['start_time'])) {
         "pattern" => false
     ];
 
-    // math riddle
+    // math puzzle
     $_SESSION['math_a'] = rand(5, 15);
     $_SESSION['math_b'] = rand(1, 10);
     $_SESSION['math_answer'] = $_SESSION['math_a'] + $_SESSION['math_b'];
 
-    // cipher shifting riddle
+    // cipher puzzle
     $words = ["code", "escape", "matrix", "unlock"];
     $_SESSION['cipher_plain'] = $words[array_rand($words)];
+    $_SESSION['cipher_shift'] = rand(1, 4);
+    $_SESSION['cipher_scrambled'] = caesarCipher(
+        $_SESSION['cipher_plain'],
+        $_SESSION['cipher_shift']
+    );
 
-    $shift = rand(1, 4);
-    $_SESSION['cipher_shift'] = $shift;
-    $_SESSION['cipher_scrambled'] = str_rot13($_SESSION['cipher_plain']); // simple placeholder
-
-    //pattern riddle
+    // pattern puzzle
     $colors = ["red", "blue", "green", "yellow"];
     shuffle($colors);
-    $_SESSION['pattern'] = $colors[0];
+    $_SESSION['pattern_sequence'] = array_slice($colors, 0, 3);
+    $_SESSION['pattern'] = $colors[3];
 }
 
 // hint system
 if (isset($_POST['hint'])) {
     $_SESSION['hints_used']++;
+
+    if (!$_SESSION['solved']['math']) {
+        $_SESSION['hint_message'] = "Math hint: close to " . $_SESSION['math_answer'];
+    } elseif (!$_SESSION['solved']['cipher']) {
+        $_SESSION['hint_message'] = "Cipher shift is " . $_SESSION['cipher_shift'];
+    } else {
+        $_SESSION['hint_message'] = "Pattern is one of the colors shown";
+    }
 }
 
 // timer
@@ -59,14 +94,15 @@ $elapsed = time() - $_SESSION['start_time'];
 $limit = $times[$_SESSION['difficulty']] - ($_SESSION['hints_used'] * 60);
 $time_left = max(0, $limit - $elapsed);
 
+// lose condition
 if ($elapsed >= $limit) {
     $_SESSION['status'] = "fail";
     header("Location: results.php");
     exit();
 }
 
-// FIX: ensure solved is always valid array
-if (!isset($_SESSION['solved']) || !is_array($_SESSION['solved'])) {
+// ensure solved array exists
+if (!isset($_SESSION['solved'])) {
     $_SESSION['solved'] = [
         "math" => false,
         "cipher" => false,
@@ -77,22 +113,19 @@ if (!isset($_SESSION['solved']) || !is_array($_SESSION['solved'])) {
 // check answers
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // math
     if (isset($_POST['math']) && $_POST['math'] == $_SESSION['math_answer']) {
         $_SESSION['solved']['math'] = true;
     }
 
-    // cipher (basic check)
     if (isset($_POST['cipher']) && strtolower($_POST['cipher']) == $_SESSION['cipher_plain']) {
         $_SESSION['solved']['cipher'] = true;
     }
 
-    // pattern
     if (isset($_POST['pattern']) && $_POST['pattern'] == $_SESSION['pattern']) {
         $_SESSION['solved']['pattern'] = true;
     }
 
-    // FIX: safe win check (no in_array on null/unsafe state)
+    // win condition
     if (
         $_SESSION['solved']['math'] &&
         $_SESSION['solved']['cipher'] &&
@@ -105,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// save cookie progress
+// save progress to cookie
 setcookie("progress", serialize($_SESSION), time() + 3600);
 ?>
 
@@ -128,43 +161,43 @@ setInterval(() => {
 
 <hr>
 
-<!-- PUZZLE MATH -->
-<h3>Math Riddle</h3>
+<!-- HINT MESSAGE -->
+<?php if (isset($_SESSION['hint_message'])): ?>
+<p><?php echo $_SESSION['hint_message']; ?></p>
+<?php endif; ?>
+
+<!-- MATH -->
+<h3>Math</h3>
 <p><?php echo $_SESSION['math_a'] . " + " . $_SESSION['math_b']; ?> = ?</p>
 <form method="POST">
-    <input name="math" placeholder="Answer">
+    <input name="math">
     <button type="submit">Submit</button>
 </form>
 
-<!-- PUZZLE CIPHER -->
-<h3>Cipher Puzzle</h3>
-<p>Decode this word:</p>
-<p><b><?php echo $_SESSION['cipher_scrambled']; ?></b></p>
+<!-- CIPHER -->
+<h3>Cipher</h3>
+<p><?php echo $_SESSION['cipher_scrambled']; ?></p>
 <form method="POST">
-    <input name="cipher" placeholder="Decoded word">
+    <input name="cipher">
     <button type="submit">Submit</button>
 </form>
 
-<!-- PUZZLE 3: PATTERN -->
-<h3>Pattern Lock</h3>
-<p>Choose the correct hidden color:</p>
+<!-- PATTERN -->
+<h3>Pattern</h3>
+<p>
+<?php echo implode(" → ", $_SESSION['pattern_sequence']); ?> → ?
+</p>
 <form method="POST">
     <select name="pattern">
-        <option value="red">red</option>
-        <option value="blue">blue</option>
-        <option value="green">green</option>
-        <option value="yellow">yellow</option>
+        <option>red</option>
+        <option>blue</option>
+        <option>green</option>
+        <option>yellow</option>
     </select>
     <button type="submit">Submit</button>
 </form>
 
-<!-- HINT -->
+<!-- HINT BUTTON -->
 <form method="POST">
-    <button name="hint" type="submit">Use Hint (-60s)</button>
+    <button name="hint">Use Hint (-60s)</button>
 </form>
-
-<?php
-echo "<p>Solved: ";
-print_r($_SESSION['solved']);
-echo "</p>";
-?>
