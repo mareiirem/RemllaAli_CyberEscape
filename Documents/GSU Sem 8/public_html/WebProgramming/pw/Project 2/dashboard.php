@@ -83,6 +83,7 @@ if (isset($_GET['difficulty'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Breakers - Dashboard</title>
+    <a href="leaderboard.php" class="btn">🏆 View Full Leaderboard</a>
     <style>
         * {
             box-sizing: border-box;

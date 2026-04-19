@@ -38,6 +38,34 @@ function update_user_stats($score, $won = false) {
     save_users($users_file, $users);
 }
 
+/* ========= LEADERBOARD SYSTEM ========= */
+function save_leaderboard_entry($username, $time_remaining, $hints_used, $difficulty) {
+
+    $file = "leaderboard.json";
+
+    if (!file_exists($file)) {
+        file_put_contents($file, json_encode([]));
+    }
+
+    $data = json_decode(file_get_contents($file), true);
+    if (!is_array($data)) $data = [];
+
+    /* ===== SCORING FORMULA ===== */
+    $hint_bonus = max(0, 200 - ($hints_used * 50));
+    $score = $time_remaining + $hint_bonus;
+
+    $data[] = [
+        "username" => $username,
+        "time_remaining" => $time_remaining,
+        "hints_used" => $hints_used,
+        "difficulty" => $difficulty,
+        "score" => $score,
+        "date" => date("Y-m-d H:i:s")
+    ];
+
+    file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
 /* ========= RESET ========= */
 if (isset($_GET['new'])) {
     session_unset();
@@ -89,27 +117,22 @@ if (!isset($_SESSION['start_time'])) {
     $_SESSION['solved'] = ["math"=>false,"cipher"=>false,"pattern"=>false];
 }
 
-/* ========= HARD GAME STATE REPAIR (IMPORTANT FIX) ========= */
-
-/* LEVEL SAFETY */
+/* ========= STATE SAFETY ========= */
 $_SESSION['level'] = $_SESSION['level'] ?? 1;
 
-/* MATH SAFETY */
-if (!isset($_SESSION['math_a']) || !isset($_SESSION['math_b']) || !isset($_SESSION['math_answer'])) {
+if (!isset($_SESSION['math_a'])) {
     $_SESSION['math_a'] = rand(5, 15);
     $_SESSION['math_b'] = rand(1, 10);
     $_SESSION['math_answer'] = $_SESSION['math_a'] + $_SESSION['math_b'];
 }
 
-/* CIPHER SAFETY */
-if (!isset($_SESSION['cipher_plain']) || !isset($_SESSION['cipher_scrambled'])) {
+if (!isset($_SESSION['cipher_plain'])) {
     $words = $wordLevels[$_SESSION['level']] ?? $wordLevels[1];
     $_SESSION['cipher_plain'] = $words[array_rand($words)];
     $_SESSION['cipher_scrambled'] = scrambleWord($_SESSION['cipher_plain']);
 }
 
-/* PATTERN SAFETY */
-if (!isset($_SESSION['pattern_sequence']) || !is_array($_SESSION['pattern_sequence']) || count($_SESSION['pattern_sequence']) !== 3) {
+if (!isset($_SESSION['pattern_sequence'])) {
     $colors = ["red", "blue", "green", "yellow"];
     shuffle($colors);
 
@@ -117,7 +140,6 @@ if (!isset($_SESSION['pattern_sequence']) || !is_array($_SESSION['pattern_sequen
     $_SESSION['pattern'] = $colors[3] ?? "red";
 }
 
-/* SOLVED SAFETY */
 $_SESSION['solved'] = $_SESSION['solved'] ?? ["math"=>false,"cipher"=>false,"pattern"=>false];
 
 /* ========= TIMER ========= */
@@ -202,9 +224,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['type'])) {
 
             $_SESSION['status'] = "win";
 
-            $score = ($_SESSION['level'] * 1000) - ($_SESSION['hints_used'] * 50);
-            $_SESSION['time_remaining'] = $_SESSION['time_limit'] - (time() - $_SESSION['start_time']);
+            $time_remaining = $_SESSION['time_limit'] - (time() - $_SESSION['start_time']);
+            $_SESSION['time_remaining'] = max(0, $time_remaining);
 
+            /* SAVE TO LEADERBOARD */
+            save_leaderboard_entry(
+                $_SESSION['username'],
+                $_SESSION['time_remaining'],
+                $_SESSION['hints_used'],
+                $_SESSION['difficulty']
+            );
+
+            $score = ($_SESSION['level'] * 1000) - ($_SESSION['hints_used'] * 50);
             update_user_stats($score, true);
 
             header("Location: results.php");
