@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// make sure user is logged in
+// must be logged in
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit;
@@ -9,36 +9,69 @@ if (!isset($_SESSION['user_id'])) {
 
 $username = $_SESSION['username'];
 $users_file = 'users.json';
-$scores_file = 'scores.json';
 
+/* ========= LOAD USERS ========= */
 function load_json($file) {
     if (!file_exists($file)) return [];
-    return json_decode(file_get_contents($file), true) ?? [];
+    $data = json_decode(file_get_contents($file), true);
+    return is_array($data) ? $data : [];
 }
 
 $users = load_json($users_file);
-$scores = load_json($scores_file);
 
-// get current users stats
-$games_played = $users[$username]['games_played'] ?? 0;
-$best_score   = $users[$username]['best_score'] ?? 0;
+/* ========= SAFE USER DATA ========= */
+$user_data = $users[$username] ?? [
+    'games_played' => 0,
+    'best_score' => 0
+];
 
-// sort leaderboard by score (high to low)
-usort($scores, function($a, $b) {
-    return $b['score'] - $a['score'];
+$games_played = $user_data['games_played'];
+$best_score   = $user_data['best_score'];
+
+/* ========= LEADERBOARD  ========= */
+$leaderboard = [];
+
+foreach ($users as $user => $data) {
+    $leaderboard[] = [
+        'username' => $user,
+        'score' => $data['best_score'] ?? 0,
+        'games' => $data['games_played'] ?? 0
+    ];
+}
+
+usort($leaderboard, function($a, $b) {
+    return $b['score'] <=> $a['score'];
 });
-$leaderboard = array_slice($scores, 0, 10);
 
-// handle difficulty selection and start the game
+$leaderboard = array_slice($leaderboard, 0, 10);
+
+/* ========= DIFFICULTY START ========= */
 if (isset($_GET['difficulty'])) {
+
     $diff = $_GET['difficulty'];
-    if (in_array($diff, ['easy', 'normal', 'expert'])) {
-        $_SESSION['difficulty']     = $diff;
-        $_SESSION['start_time']     = time();
-        $_SESSION['hints_used']     = 0;
+
+    $times = [
+        "easy" => 600,
+        "normal" => 420,
+        "expert" => 240
+    ];
+
+    if (isset($times[$diff])) {
+
+        unset($_SESSION['start_time']);
+        unset($_SESSION['solved']);
+        unset($_SESSION['attempts']);
+        unset($_SESSION['pattern_sequence']);
+        unset($_SESSION['pattern']);
+        unset($_SESSION['level']);
+
+        $_SESSION['difficulty'] = $diff;
+        $_SESSION['time_limit'] = $times[$diff];
+
+        $_SESSION['start_time'] = time();
+        $_SESSION['hints_used'] = 0;
         $_SESSION['puzzles_solved'] = 0;
-        // clear old puzzle seed so puzzles are re-randomized
-        unset($_SESSION['puzzle_seed']);
+
         header('Location: game.php');
         exit;
     }
