@@ -28,7 +28,7 @@ $user_data = $users[$username] ?? [
 $games_played = $user_data['games_played'];
 $best_score   = $user_data['best_score'];
 
-/* ========= LEADERBOARD (FROM USERS ONLY) ========= */
+/* ========= LEADERBOARD  ========= */
 $leaderboard = [];
 
 foreach ($users as $user => $data) {

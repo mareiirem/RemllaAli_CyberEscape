@@ -22,6 +22,16 @@ if ($status === "win") {
 
     $_SESSION['final_score'] = $score;
 
+    /*  UNLOCK ANIMATION  */
+    echo "
+    <div class='level-overlay unlock-overlay'>
+        <div class='level-content'>
+            <img src='assets/unlock.png' class='unlock-icon' alt='Unlock'>
+            <h1>Congrats! You escaped!</h1>
+        </div>
+    </div>
+    ";
+
     echo "<div class='container win'>";
     echo "<h1>🎉 ESCAPED!</h1>";
     echo "<h2>Your Score: $score</h2>";
@@ -47,7 +57,7 @@ else {
 }
 
 /* ================= LEADERBOARD ================= */
-echo "<div class='container'>";
+echo "<div class='container leaderboard'>";
 echo "<h2>Leaderboard</h2>";
 
 if (file_exists("leaderboard.txt")) {
