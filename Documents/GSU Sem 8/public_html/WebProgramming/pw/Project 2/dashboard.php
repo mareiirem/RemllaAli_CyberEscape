@@ -3,7 +3,7 @@ session_start();
 
 // must be logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 
@@ -282,7 +282,7 @@ if (isset($_GET['difficulty'])) {
             font-size: 14px;
         }
 
-        /* how to play section */
+        /* how to play and history sections */
         .howto {
             background-color: #16213e;
             border: 1px solid #0f3460;
@@ -338,6 +338,39 @@ if (isset($_GET['difficulty'])) {
             </div>
             <div class="label">Leaderboard Rank</div>
         </div>
+    </div>
+
+    <!-- game history -->
+    <div class="howto">
+        <strong>Recent Game History:</strong>
+        <?php
+        $history = array_reverse($users[$username]['history'] ?? []);
+        if (empty($history)): ?>
+            <p style="color:#888; margin-top:8px;">No games played yet.</p>
+        <?php else: ?>
+            <table style="margin-top:10px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Result</th>
+                        <th>Difficulty</th>
+                        <th>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach (array_slice($history, 0, 5) as $game): ?>
+                    <tr>
+                        <td><?= $game['date'] ?></td>
+                        <td style="color: <?= $game['result'] === 'WIN' ? '#1e8449' : '#c0392b' ?>">
+                            <?= $game['result'] ?>
+                        </td>
+                        <td><?= ucfirst($game['difficulty']) ?></td>
+                        <td><?= $game['score'] ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
     </div>
 
     <!-- how to play info -->
