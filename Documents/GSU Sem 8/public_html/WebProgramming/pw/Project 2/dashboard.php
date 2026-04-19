@@ -30,15 +30,34 @@ usort($scores, function($a, $b) {
 $leaderboard = array_slice($scores, 0, 10);
 
 // handle difficulty selection and start the game
+
 if (isset($_GET['difficulty'])) {
     $diff = $_GET['difficulty'];
+
+    $times = [
+        "easy" => 600,
+        "normal" => 420,
+        "expert" => 240
+    ];
+
     if (in_array($diff, ['easy', 'normal', 'expert'])) {
-        $_SESSION['difficulty']     = $diff;
-        $_SESSION['start_time']     = time();
-        $_SESSION['hints_used']     = 0;
+
+
+        unset($_SESSION['start_time']);
+        unset($_SESSION['solved']);
+        unset($_SESSION['attempts']);
+        unset($_SESSION['pattern_sequence']);
+        unset($_SESSION['pattern']);
+        unset($_SESSION['level']);
+
+        // set difficulty + time correctly
+        $_SESSION['difficulty'] = $diff;
+        $_SESSION['time_limit'] = $times[$diff];
+
+        $_SESSION['start_time'] = time();
+        $_SESSION['hints_used'] = 0;
         $_SESSION['puzzles_solved'] = 0;
-        // clear old puzzle seed so puzzles are re-randomized
-        unset($_SESSION['puzzle_seed']);
+
         header('Location: game.php');
         exit;
     }
