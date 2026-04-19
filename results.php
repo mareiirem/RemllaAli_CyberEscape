@@ -2,9 +2,18 @@
 session_start();
 
 $status = $_SESSION['status'] ?? "fail";
+?>
 
-echo "<body style='font-family:Arial;text-align:center;'>";
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Results</title>
+    <link rel="stylesheet" href="cyberbreakers.css">
+</head>
 
+<body class="result-page">
+
+<?php
 /* ================= WIN SCREEN ================= */
 if ($status === "win") {
 
@@ -16,7 +25,7 @@ if ($status === "win") {
 
     $_SESSION['final_score'] = $score;
 
-    echo "<div style='background:black;color:lime;padding:40px;'>";
+    echo "<div class='container win'>";
     echo "<h1>🎉 ESCAPED!</h1>";
     echo "<h2>Your Score: $score</h2>";
     echo "<p>Time Bonus: $time_remaining</p>";
@@ -31,7 +40,7 @@ if ($status === "win") {
 /* ================= LOSE SCREEN ================= */
 else {
 
-    echo "<div style='background:red;color:white;padding:40px;'>";
+    echo "<div class='container fail'>";
     echo "<h1>⏰ TIME UP!</h1>";
     echo "<h2>You failed to escape</h2>";
     echo "</div>";
@@ -41,12 +50,13 @@ else {
 }
 
 /* ================= LEADERBOARD ================= */
+echo "<div class='container'>";
 echo "<h2>Leaderboard</h2>";
 
 if (file_exists("leaderboard.txt")) {
     $lines = file("leaderboard.txt");
 
-    // sort by score (extract numbers safely)
+    // sort by score (highest first)
     usort($lines, function($a, $b) {
         preg_match('/Score: (\d+)/', $a, $a1);
         preg_match('/Score: (\d+)/', $b, $b1);
@@ -59,9 +69,14 @@ if (file_exists("leaderboard.txt")) {
     }
 }
 
+echo "</div>";
+
 /* ================= RESET ================= */
 session_unset();
 ?>
 
 <br>
 <a href="dashboard.php">Back to Dashboard</a>
+
+</body>
+</html>

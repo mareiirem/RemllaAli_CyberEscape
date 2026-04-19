@@ -1,179 +1,299 @@
-/* <link rel="stylesheet" href="cyberbreakers.css"> */
-
+/* ===== RESET ===== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  font-family:Segoe UI, Roboto, Arial, sans-serif;
 }
 
-/* ===== BACKGROUND ===== */
+/* ===== BASE ===== */
 body {
-  background: linear-gradient(0deg, rgba(2, 0, 36, 1) 0%, rgba(9, 9, 133, 1) 50%, rgba(2, 0, 36, 1) 100%);
+  min-height: 100vh;
   color: #e5e7eb;
+  background: linear-gradient(135deg, #0b1020, #1a2751, #0b1020);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-x: hidden;
+}
+
+/* ===== BACKGROUND ANIMATION ===== */
+@keyframes bgFade {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.08); }
+}
+
+/* ===== PAGE MODES ===== */
+
+/* GAME PAGE */
+.game-page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 40px 15px;
+}
+
+/* RESULT PAGE */
+.result-page {
+  width: 100%;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-
-
-  animation: bgPulse 8s ease-in-out infinite;
-}
-
-@keyframes bgPulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.1); }
-}
-
-
-.container {
-  background: #7d96be;
-  padding: 30px;
-  border-radius: 12px;
-  width: 350px;
   text-align: center;
-
-
-  box-shadow: 
-    0 0 15px rgba(0,0,0,0.5),
-    0 0 25px rgba(151, 10, 17, 0.3);
-
-
-  animation: fadeInUp 0.8s ease;
+  padding: 20px;
 }
 
-
-h1, h2 {
-  margin-bottom: 15px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-
-input {
+/* ===== GAME WRAPPER ===== */
+.game-container {
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: none;
-  border-radius: 6px;
-
-  background: #e5e7eb;
-  transition: all 0.3s ease;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeIn 0.6s ease;
 }
 
-input:focus {
+/* ===== HUD  ===== */
+.hud {
+  position: sticky;
+  top: 0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+
+  padding: 14px 18px;
+  border-radius: 12px;
+
+  background: #362fba;
+  background: radial-gradient(circle, rgba(54, 47, 186, 1) 0%, rgba(87, 87, 201, 1) 40%, rgb(11, 7, 90) 100%);
+  backdrop-filter: blur(10px);
+
+  border: 5px solid rgba(255, 255, 255, 0.849);
+  z-index: 10;
+}
+
+.hud-item {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* ===== TIMER BAR ===== */
+.timer-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.timer-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  animation: timerShrink 600s linear forwards;
+}
+
+
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  animation: progressGrow 1s ease forwards;
+}
+
+@keyframes progressGrow {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@keyframes timerShrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* ===== PUZZLE GRID (FIXED WRAP) ===== */
+.puzzle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ===== CARDS (CONSISTENT + CLEAN) ===== */
+.card {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 18px;
+  border-radius: 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 180px;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== INPUTS ===== */
+input, select {
+  width: 100%;
+  padding: 10px 12px;
+
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+
+  transition: 0.2s ease;
+}
+
+input:focus, select:focus {
   outline: none;
-  box-shadow: 0 0 8px #970a11;
-  transform: scale(1.02);
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
 }
 
-
+/* ===== BUTTONS ===== */
 button {
   width: 100%;
   padding: 10px;
-  background-color: #970a11;
-  color: white;
+  border-radius: 8px;
   border: none;
-  border-radius: 6px;
+
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 10px;
 
-
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 button:hover {
-  background-color: #380000;
   transform: translateY(-2px);
-  box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
 }
 
 button:active {
   transform: scale(0.97);
 }
 
+/* ===== HEADINGS ===== */
+h1, h2 {
+  color: #f3f4f6;
+  font-weight: 600;
+}
 
+/* ===== LINKS ===== */
 a {
-  color: #38bdf8;
-  text-decoration: none;
-  transition: 0.2s;
+  color: #93c5fd;
 }
 
 a:hover {
   text-decoration: underline;
-  color: #7dd3fc;
 }
 
-
-.card {
-  background: #380000;
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: 10px;
-
-
-  box-shadow: 
-    inset 0 0 10px rgba(0,0,0,0.6),
-    0 0 10px rgba(8, 0, 0, 0.2);
-
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 
-    inset 0 0 10px rgba(0,0,0,0.6),
-    0 0 20px rgba(64, 2, 5, 0.5);
-}
-
-
+/* ===== TEXT HIGHLIGHT ===== */
 .highlight {
-  color: #c2000a;
-  font-weight: bold;
-
-
-  text-shadow: 0 0 6px rgba(255, 26, 38, 0.6);
+  color: #60a5fa;
+  font-weight: 600;
 }
 
-
-.footer {
-  text-align: center;
-  padding: 15px;
-  font-size: 12px;
-  background: #380000;
-  color: white;
-
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.4);
-}
-
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* ===== RESULT STATES ===== */
 .win {
-  color: lime;
-  animation: pop 1s ease;
+  color: #22c55e;
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  animation: pop 0.4s ease;
 }
 
 .fail {
-  color: red;
-  animation: flash 0.5s infinite;
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  animation: shake 0.4s ease;
+}
+
+
+.game-container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+}
+
+/* HUD now truly stays on top */
+.hud {
+  position: sticky;
+  top: 0;
+}
+
+/* Force vertical stacking */
+.puzzle-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Make cards full width clean stack */
+.card {
+  width: 100%;
+}
+
+
+
+/* ===== FOOTER ===== */
+.footer {
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 20px;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pop {
-  0% { transform: scale(0); }
+  0% { transform: scale(0.9); }
   100% { transform: scale(1); }
 }
 
-@keyframes flash {
-  0% { background: red; }
-  100% { background: black; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
+
+.fade-out {
+  animation: fadeOut 0.4s ease forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translateY(10px); }
 }

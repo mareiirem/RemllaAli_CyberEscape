@@ -20,6 +20,11 @@ if (!isset($_SESSION['difficulty'])) {
     $_SESSION['difficulty'] = $_GET['difficulty'] ?? "easy";
 }
 
+/* ========= STATUS INIT ========= */
+if (!isset($_SESSION['status'])) {
+    $_SESSION['status'] = "playing";
+}
+
 /* ========= SCRAMBLE FUNCTION ========= */
 function scrambleWord($word) {
     do {
@@ -54,63 +59,24 @@ if (!isset($_SESSION['start_time'])) {
         "pattern" => 0
     ];
 
-    /* MATH */
     $_SESSION['math_a'] = rand(5, 15);
     $_SESSION['math_b'] = rand(1, 10);
     $_SESSION['math_answer'] = $_SESSION['math_a'] + $_SESSION['math_b'];
 
-    /* SCRAMBLE */
     $words = $wordLevels[$_SESSION['level']];
     $_SESSION['cipher_plain'] = $words[array_rand($words)];
     $_SESSION['cipher_scrambled'] = scrambleWord($_SESSION['cipher_plain']);
 
-    /* PATTERN */
     $colors = ["red", "blue", "green", "yellow"];
     shuffle($colors);
     $_SESSION['pattern_sequence'] = array_slice($colors, 0, 3);
     $_SESSION['pattern'] = $colors[3];
 }
 
-/* ========= NEW PUZZLES ========= */
-function newPuzzles() {
-    global $wordLevels;
-
-    $_SESSION['solved'] = [
-        "math" => false,
-        "cipher" => false,
-        "pattern" => false
-    ];
-
-    $_SESSION['attempts'] = [
-        "math" => 0,
-        "cipher" => 0,
-        "pattern" => 0
-    ];
-
-    /* MATH */
-    $_SESSION['math_a'] = rand(5, 15);
-    $_SESSION['math_b'] = rand(1, 10);
-    $_SESSION['math_answer'] = $_SESSION['math_a'] + $_SESSION['math_b'];
-
-    /* SCRAMBLE */
-    $words = $wordLevels[$_SESSION['level']];
-    $_SESSION['cipher_plain'] = $words[array_rand($words)];
-    $_SESSION['cipher_scrambled'] = scrambleWord($_SESSION['cipher_plain']);
-
-    /* PATTERN */
-    $colors = ["red", "blue", "green", "yellow"];
-    shuffle($colors);
-    $_SESSION['pattern_sequence'] = array_slice($colors, 0, 3);
-    $_SESSION['pattern'] = $colors[3];
-}
-
-/* ========= HINT SYSTEM ========= */
+/* ========= HINT ========= */
 if (isset($_POST['hint'])) {
-    $_SESSION['hints_used'] = ($_SESSION['hints_used'] ?? 0) + 1;
-
-    // subtract 60 seconds
-    $_SESSION['start_time'] -= 60;
-
+    $_SESSION['hints_used']++;
+    $_SESSION['start_time'] += 60;
     header("Location: game.php");
     exit();
 }
@@ -118,43 +84,22 @@ if (isset($_POST['hint'])) {
 /* ========= PUZZLE HANDLER ========= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['type'])) {
 
-    /* ===== MATH ===== */
     if ($_POST['type'] === "math" && !$_SESSION['solved']['math']) {
-        $_SESSION['attempts']['math']++;
-
-        if ((int)$_POST['value'] === $_SESSION['math_answer']) {
-            $_SESSION['solved']['math'] = true;
-            $_SESSION['msg_math'] = "Correct!";
-        } else {
-            $_SESSION['msg_math'] = "Wrong";
-        }
+        $_SESSION['solved']['math'] = ((int)$_POST['value'] === $_SESSION['math_answer']);
+        $_SESSION['msg_math'] = $_SESSION['solved']['math'] ? "Correct!" : "Wrong";
     }
 
-    /* ===== CIPHER ===== */
     if ($_POST['type'] === "cipher" && !$_SESSION['solved']['cipher']) {
-        $_SESSION['attempts']['cipher']++;
-
-        if (strtolower($_POST['value']) === strtolower($_SESSION['cipher_plain'])) {
-            $_SESSION['solved']['cipher'] = true;
-            $_SESSION['msg_cipher'] = "Correct!";
-        } else {
-            $_SESSION['msg_cipher'] = "Wrong";
-        }
+        $_SESSION['solved']['cipher'] =
+            strtolower($_POST['value']) === strtolower($_SESSION['cipher_plain']);
+        $_SESSION['msg_cipher'] = $_SESSION['solved']['cipher'] ? "Correct!" : "Wrong";
     }
 
-    /* ===== PATTERN ===== */
     if ($_POST['type'] === "pattern" && !$_SESSION['solved']['pattern']) {
-        $_SESSION['attempts']['pattern']++;
-
-        if ($_POST['value'] === $_SESSION['pattern']) {
-            $_SESSION['solved']['pattern'] = true;
-            $_SESSION['msg_pattern'] = "Correct!";
-        } else {
-            $_SESSION['msg_pattern'] = "Wrong";
-        }
+        $_SESSION['solved']['pattern'] = ($_POST['value'] === $_SESSION['pattern']);
+        $_SESSION['msg_pattern'] = $_SESSION['solved']['pattern'] ? "Correct!" : "Wrong";
     }
 
-    /* ===== LEVEL COMPLETE ===== */
     if ($_SESSION['solved']['math'] &&
         $_SESSION['solved']['cipher'] &&
         $_SESSION['solved']['pattern']) {
@@ -162,11 +107,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['type'])) {
         $_SESSION['level']++;
 
         if ($_SESSION['level'] > 3) {
+            $_SESSION['status'] = "win";
+            $elapsed = time() - $_SESSION['start_time'];
+            $_SESSION['time_remaining'] = max(0, $times[$_SESSION['difficulty']] - $elapsed);
             header("Location: results.php");
             exit();
         }
 
-        newPuzzles();
+        // reset puzzles (simplified inline)
+        $_SESSION['solved'] = ["math"=>false,"cipher"=>false,"pattern"=>false];
+
+        $_SESSION['math_a'] = rand(5, 15);
+        $_SESSION['math_b'] = rand(1, 10);
+        $_SESSION['math_answer'] = $_SESSION['math_a'] + $_SESSION['math_b'];
+
+        $words = $wordLevels[$_SESSION['level']];
+        $_SESSION['cipher_plain'] = $words[array_rand($words)];
+        $_SESSION['cipher_scrambled'] = scrambleWord($_SESSION['cipher_plain']);
+
+        $colors = ["red", "blue", "green", "yellow"];
+        shuffle($colors);
+        $_SESSION['pattern_sequence'] = array_slice($colors, 0, 3);
+        $_SESSION['pattern'] = $colors[3];
     }
 
     header("Location: game.php");
@@ -179,6 +141,8 @@ $limit = $times[$_SESSION['difficulty']];
 $remaining = max(0, $limit - $elapsed);
 
 if ($remaining <= 0) {
+    $_SESSION['status'] = "fail";
+    $_SESSION['time_remaining'] = 0;
     header("Location: results.php");
     exit();
 }
@@ -187,79 +151,81 @@ if ($remaining <= 0) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Game</title>
+    <title>CyberEscape</title>
+    <link rel="stylesheet" href="cyberbreakers.css">
 </head>
-<body>
 
-<h2>Level <?php echo $_SESSION['level']; ?>/3</h2>
+<body class="game-page">
 
-<h2>Time Remaining: <?php echo $remaining; ?> seconds</h2>
+<div class="game-container">
 
-<hr>
+    <!-- ===== HUD ===== -->
+    <div class="hud">
+        <div class="hud-item">Level <?php echo $_SESSION['level']; ?>/3</div>
+        <div class="hud-item">Time: <?php echo $remaining; ?>s</div>
+        <div class="hud-item">Hints: <?php echo $_SESSION['hints_used']; ?></div>
 
-<!-- ================= HINT ================= -->
-<form method="POST">
-    <button type="submit" name="hint" value="1">
-        Use Hint (-60s)
-    </button>
-</form>
+        <form method="POST">
+            <button type="submit" name="hint">Use Hint (-60s)</button>
+        </form>
+    </div>
 
-<p>Hints used: <?php echo $_SESSION['hints_used'] ?? 0; ?></p>
+    <!-- ===== PUZZLES STACKED ===== -->
+    <div class="puzzle-grid">
 
-<hr>
+        <!-- MATH -->
+        <div class="card">
+            <h3>Math <?php echo $_SESSION['solved']['math'] ? "✅" : ""; ?></h3>
+            <p><?php echo $_SESSION['msg_math'] ?? ""; ?></p>
 
-<!-- ================= MATH ================= -->
-<h3>Math <?php echo $_SESSION['solved']['math'] ? "✅" : ""; ?></h3>
-<p><?php echo $_SESSION['msg_math'] ?? ""; ?></p>
+            <?php if (!$_SESSION['solved']['math']): ?>
+                <p><?php echo $_SESSION['math_a'] . " + " . $_SESSION['math_b']; ?></p>
+                <form method="POST">
+                    <input type="hidden" name="type" value="math">
+                    <input type="number" name="value">
+                    <button>Submit</button>
+                </form>
+            <?php endif; ?>
+        </div>
 
-<?php if (!$_SESSION['solved']['math']): ?>
-    <p><?php echo $_SESSION['math_a'] . " + " . $_SESSION['math_b']; ?></p>
+        <!-- SCRAMBLE -->
+        <div class="card">
+            <h3>Word Scramble <?php echo $_SESSION['solved']['cipher'] ? "✅" : ""; ?></h3>
+            <p><?php echo $_SESSION['msg_cipher'] ?? ""; ?></p>
 
-    <form method="POST">
-        <input type="hidden" name="type" value="math">
-        <input type="number" name="value">
-        <button type="submit">Submit</button>
-    </form>
-<?php endif; ?>
+            <?php if (!$_SESSION['solved']['cipher']): ?>
+                <p><?php echo $_SESSION['cipher_scrambled']; ?></p>
+                <form method="POST">
+                    <input type="hidden" name="type" value="cipher">
+                    <input type="text" name="value">
+                    <button>Submit</button>
+                </form>
+            <?php endif; ?>
+        </div>
 
-<hr>
+        <!-- PATTERN -->
+        <div class="card">
+            <h3>Pattern <?php echo $_SESSION['solved']['pattern'] ? "✅" : ""; ?></h3>
+            <p><?php echo $_SESSION['msg_pattern'] ?? ""; ?></p>
 
-<!-- ================= SCRAMBLE ================= -->
-<h3>Word Scramble <?php echo $_SESSION['solved']['cipher'] ? "✅" : ""; ?></h3>
-<p><?php echo $_SESSION['msg_cipher'] ?? ""; ?></p>
+            <?php if (!$_SESSION['solved']['pattern']): ?>
+                <p><?php echo implode(" → ", $_SESSION['pattern_sequence']); ?> → ?</p>
 
-<?php if (!$_SESSION['solved']['cipher']): ?>
-    <p><?php echo $_SESSION['cipher_scrambled']; ?></p>
+                <form method="POST">
+                    <input type="hidden" name="type" value="pattern">
+                    <select name="value">
+                        <option>red</option>
+                        <option>blue</option>
+                        <option>green</option>
+                        <option>yellow</option>
+                    </select>
+                    <button>Submit</button>
+                </form>
+            <?php endif; ?>
+        </div>
 
-    <form method="POST">
-        <input type="hidden" name="type" value="cipher">
-        <input type="text" name="value">
-        <button type="submit">Submit</button>
-    </form>
-<?php endif; ?>
-
-<hr>
-
-<!-- ================= PATTERN ================= -->
-<h3>Pattern <?php echo $_SESSION['solved']['pattern'] ? "✅" : ""; ?></h3>
-<p><?php echo $_SESSION['msg_pattern'] ?? ""; ?></p>
-
-<?php if (!$_SESSION['solved']['pattern']): ?>
-    <p><?php echo implode(" → ", $_SESSION['pattern_sequence']); ?> → ?</p>
-
-    <form method="POST">
-        <input type="hidden" name="type" value="pattern">
-
-        <select name="value">
-            <option>red</option>
-            <option>blue</option>
-            <option>green</option>
-            <option>yellow</option>
-        </select>
-
-        <button type="submit">Submit</button>
-    </form>
-<?php endif; ?>
+    </div>
+</div>
 
 </body>
 </html>
