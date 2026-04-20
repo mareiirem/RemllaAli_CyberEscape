@@ -18,7 +18,7 @@ setcookie('progress', '', time() - 3600, '/');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Code Breakers - Logged Out</title>
     <!-- redirect to login after 3 seconds -->
-    <meta http-equiv="refresh" content="3;url=login.php">
+    <meta http-equiv="refresh" content="3;url=/~sbodapati1/WebProgramming/pw/Project%202/index.php">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -78,7 +78,7 @@ setcookie('progress', '', time() - 3600, '/');
     <h2>Logged Out</h2>
     <p>See you next time, <strong><?= htmlspecialchars($username) ?></strong>!<br>Your session has been cleared.</p>
     <p class="redirect-msg">Redirecting to login in 3 seconds...<br>
-        <a href="login.php">Click here</a> if it doesn't redirect.
+    <a href="/~sbodapati1/WebProgramming/pw/Project%202/index.php">Click here</a>
     </p>
 </div>
 </body>

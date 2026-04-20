@@ -1,78 +1,44 @@
 <?php
 session_start();
 
-// must be logged in
+// make sure user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php');
+    header('Location: /~sbodapati1/WebProgramming/pw/Project%202/index.php');
     exit;
 }
 
 $username = $_SESSION['username'];
-$users_file = 'users.json';
+$users_file = '/home/sbodapati1/public_html/WebProgramming/pw/Project 2/users.json';
+$scores_file = '/home/sbodapati1/public_html/WebProgramming/pw/Project 2/leaderboard.json';
 
-/* ========= LOAD USERS ========= */
 function load_json($file) {
     if (!file_exists($file)) return [];
-    $data = json_decode(file_get_contents($file), true);
-    return is_array($data) ? $data : [];
+    return json_decode(file_get_contents($file), true) ?? [];
 }
 
 $users = load_json($users_file);
+$scores = load_json($scores_file);
 
-/* ========= SAFE USER DATA ========= */
-$user_data = $users[$username] ?? [
-    'games_played' => 0,
-    'best_score' => 0
-];
+// get current users stats
+$games_played = $users[$username]['games_played'] ?? 0;
+$best_score   = $users[$username]['best_score'] ?? 0;
 
-$games_played = $user_data['games_played'];
-$best_score   = $user_data['best_score'];
-
-/* ========= LEADERBOARD  ========= */
-$leaderboard = [];
-
-foreach ($users as $user => $data) {
-    $leaderboard[] = [
-        'username' => $user,
-        'score' => $data['best_score'] ?? 0,
-        'games' => $data['games_played'] ?? 0
-    ];
-}
-
-usort($leaderboard, function($a, $b) {
-    return $b['score'] <=> $a['score'];
+// sort leaderboard by score (high to low)
+usort($scores, function($a, $b) {
+    return $b['score'] - $a['score'];
 });
+$leaderboard = array_slice($scores, 0, 10);
 
-$leaderboard = array_slice($leaderboard, 0, 10);
-
-/* ========= DIFFICULTY START ========= */
+// handle difficulty selection and start the game
 if (isset($_GET['difficulty'])) {
-
     $diff = $_GET['difficulty'];
-
-    $times = [
-        "easy" => 600,
-        "normal" => 420,
-        "expert" => 240
-    ];
-
-    if (isset($times[$diff])) {
-
-        unset($_SESSION['start_time']);
-        unset($_SESSION['solved']);
-        unset($_SESSION['attempts']);
-        unset($_SESSION['pattern_sequence']);
-        unset($_SESSION['pattern']);
-        unset($_SESSION['level']);
-
-        $_SESSION['difficulty'] = $diff;
-        $_SESSION['time_limit'] = $times[$diff];
-
-        $_SESSION['start_time'] = time();
-        $_SESSION['hints_used'] = 0;
+    if (in_array($diff, ['easy', 'normal', 'expert'])) {
+        $_SESSION['difficulty']     = $diff;
+        $_SESSION['start_time']     = time();
+        $_SESSION['hints_used']     = 0;
         $_SESSION['puzzles_solved'] = 0;
-
-        header('Location: game.php');
+        unset($_SESSION['puzzle_seed']);
+        header('Location: /~sbodapati1/WebProgramming/pw/Project%202/game.php');
         exit;
     }
 }
@@ -306,7 +272,7 @@ if (isset($_GET['difficulty'])) {
     <h2>🕵️ Code Breakers</h2>
     <div class="user-info">
         <span>Welcome, <strong><?= htmlspecialchars($username) ?></strong></span>
-        <a href="logout.php">Logout</a>
+        <a href="/~sbodapati1/WebProgramming/pw/Project%202/logout.php">Logout</a>
     </div>
 </div>
 
@@ -325,7 +291,6 @@ if (isset($_GET['difficulty'])) {
         <div class="stat-box">
             <div class="number">
                 <?php
-                    // figure out what rank the current user is
                     $rank = '—';
                     foreach ($leaderboard as $i => $entry) {
                         if ($entry['username'] === $username) {
