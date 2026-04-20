@@ -1,9 +1,11 @@
+# CyberEscape
 
 CyberEscape is a randomly-generated cryptic puzzle game where players take on a time
 challenge to complete all puzzles before the timer runs out. This game also includes AI enabled
 features like a PHP puzzle randomizer, time coach, AI-confidence meter, and answer-proximity
 score.
 
+---
 
 ## File Structure & Functionality
 
@@ -112,8 +114,10 @@ Final score is based on:
 * Remaining time
 * Number of hints used (bonus for unused hints)
 
+---
 
 ## AI Disclosure
 
 Generative AI (ChaGPT and Claude Code) have been utilized in this project to help generate comments, identify bugs, and clean up our codebase. ALL code has been hand picked and reviewed by contributors to this project, and all work and logic ideas are our own.
+
 
